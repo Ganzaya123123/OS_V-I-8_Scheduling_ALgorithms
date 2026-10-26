@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPU Scheduling Simulator</title>
+<style>
+:root{--bg:#e9eef3;--panel:#fff;--ink:#17222d;--mute:#5b6b7a;--line:#cfd8e1;--accent:#0b5cad;--err:#a4261b;--errbg:#fdecea;--idle:#d5dce3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+header{padding:18px 24px 6px}
+h1{margin:0;font-size:22px;font-weight:650}
+header p{margin:2px 0 0;color:var(--mute)}
+main{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:16px;padding:12px 24px 32px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+section{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+h2{margin:0 0 10px;font-size:16px}
+label{display:block;font-weight:600;margin:10px 0 3px}
+select,input{font:inherit;padding:5px 7px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);min-width:0}
+select{width:100%}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:3px 4px;text-align:left}
+th{font-size:13px;color:var(--mute);font-weight:600}
+#ptable input{width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:4px;background:#f6f8fa;cursor:pointer;color:var(--ink)}
+button:hover{background:#eaeff4}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:#094a8d}
+button.del{padding:2px 8px}
+#errors{display:none;margin-top:12px;padding:10px 12px;background:var(--errbg);border-left:4px solid var(--err);color:var(--err);border-radius:4px}
+#errors ul{margin:4px 0 0;padding-left:18px}
+#gantt{position:relative;height:56px;margin:14px 0 0;background:repeating-linear-gradient(90deg,transparent 0 calc(var(--unit,10px) - 1px),#eef2f6 calc(var(--unit,10px) - 1px) var(--unit,10px));border:1px solid var(--line);border-radius:4px}
+.seg{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;overflow:hidden;border-right:1px solid rgba(255,255,255,.7);white-space:nowrap}
+.seg.idle{background:var(--idle);color:var(--mute);font-weight:400}
+#axis{position:relative;height:22px;font-size:12px;color:var(--mute)}
+#axis span{position:absolute;transform:translateX(-50%)}
+.player{display:flex;align-items:center;gap:8px;margin-top:10px}
+.player input[type=range]{flex:1;padding:0}
+#clock{min-width:150px;color:var(--mute)}
+#results table td,#results table th{border-bottom:1px solid var(--line);padding:5px 8px}
+.num{text-align:right}
+tfoot td{font-weight:650}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.empty{color:var(--mute)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px;color:var(--mute)}
+.stats b{color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+  <h1>CPU Scheduling Simulator</h1>
+  <p>V-1-8 · Operating System Concepts, chapter 5. Pick an algorithm, edit the processes, run, then step through the Gantt chart.</p>
+</header>
+<main>
+<section aria-label="Inputs">
+  <h2>Inputs</h2>
+  <label for="preset">Example</label>
+  <select id="preset"></select>
+  <label for="algo">Algorithm</label>
+  <select id="algo"></select>
+  <div id="qbox">
+    <label for="quantum">Time quantum</label>
+    <input id="quantum" type="number" min="1" value="4" style="width:100px">
+  </div>
+  <label>Processes <span style="font-weight:400;color:var(--mute)">(lower priority number = higher priority)</span></label>
+  <table id="ptable">
+    <thead><tr><th>Name</th><th>Arrival</th><th>Burst</th><th>Priority</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="btns">
+    <button id="add">Add process</button>
+    <button id="load">Load JSON file</button>
+    <button id="reset">Reset</button>
+    <input id="file" type="file" accept=".json,application/json" hidden>
+  </div>
+  <div class="btns"><button id="run" class="primary">Run schedule</button></div>
+  <div id="errors" role="alert"></div>
+</section>
+
+<section id="results" aria-live="polite">
+  <h2>Gantt chart</h2>
+  <p class="empty" id="placeholder">Run a schedule to see the chart. Each coloured block is one CPU burst; grey is idle time.</p>
+  <div id="out" hidden>
+    <div class="stats" id="stats"></div>
+    <div id="gantt" role="img" aria-label="Gantt chart"></div>
+    <div id="axis"></div>
+    <div class="player">
+      <button id="back" aria-label="Step back">◀ Back</button>
+      <button id="play">Play</button>
+      <button id="fwd" aria-label="Step forward">Next ▶</button>
+      <input id="slider" type="range" min="0" value="0" aria-label="Time">
+      <span id="clock"></span>
+    </div>
+    <h2 style="margin-top:18px">Per-process times</h2>
+    <div style="overflow-x:auto"><table id="mtable"></table></div>
+  </div>
+</section>
+</main>
+
+<script>
+const ALGOS = {
+  FCFS: "First-Come, First-Served", SJF: "Shortest-Job-First (non-preemptive)",
+  PRIORITY: "Priority (non-preemptive)", RR: "Round-Robin", PRIORITY_RR: "Priority with Round-Robin"
+};
+const mk = (name, arrival, burst, priority) => ({name, arrival, burst, priority});
+const PRESETS = {
+  "Blank (one process)": {algorithm: "FCFS", quantum: 4, processes: [mk("P1", 0, 5, 1)]},
+  "FCFS: P1=24, P2=3, P3=3": {algorithm: "FCFS", quantum: 4, processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
+  "SJF: 6, 8, 7, 3": {algorithm: "SJF", quantum: 4, processes: [mk("P1",0,6,1), mk("P2",0,8,1), mk("P3",0,7,1), mk("P4",0,3,1)]},
+  "Priority: 10, 1, 2, 1, 5": {algorithm: "PRIORITY", quantum: 4, processes: [mk("P1",0,10,3), mk("P2",0,1,1), mk("P3",0,2,4), mk("P4",0,1,5), mk("P5",0,5,2)]},
+  "Round-Robin q=4: 24, 3, 3": {algorithm: "RR", quantum: 4, processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
+  "Priority + RR with idle gap": {algorithm: "PRIORITY_RR", quantum: 2, processes: [mk("P1",0,7,3), mk("P2",1,4,2), mk("P3",2,3,2), mk("P4",4,2,1), mk("P5",20,3,2)]}
+};
+const $ = id => document.getElementById(id);
+let result = null, T = 0, timer = null;
+
+for (const k in ALGOS) $("algo").add(new Option(ALGOS[k], k));
+for (const k in PRESETS) $("preset").add(new Option(k, k));
+
+function color(i){ return `hsl(${(i * 67 + 205) % 360} 52% 38%)`; }
+
+function addRow(p = mk("", 0, 1, 1)) {
+  const tr = document.createElement("tr");
+  for (const f of ["name", "arrival", "burst", "priority"]) {
+    const td = document.createElement("td"), inp = document.createElement("input");
+    inp.dataset.f = f; inp.value = p[f]; inp.setAttribute("aria-label", f);
+    if (f !== "name") { inp.type = "number"; inp.step = "1"; }
+    td.append(inp); tr.append(td);
+  }
+  const td = document.createElement("td"), b = document.createElement("button");
+  b.textContent = "✕"; b.className = "del"; b.setAttribute("aria-label", "Remove process");
+  b.onclick = () => tr.remove(); td.append(b); tr.append(td);
+  $("ptable").tBodies[0].append(tr);
+}
+
+function setConfig(c) {
+  $("algo").value = c.algorithm in ALGOS ? c.algorithm : "FCFS";
+  $("quantum").value = c.quantum ?? 4;
+  $("ptable").tBodies[0].replaceChildren();
+  (c.processes || []).forEach(addRow);
+  syncQuantum(); clearResult(); showErrors([]);
+}
+function syncQuantum(){ $("qbox").style.display = ["RR","PRIORITY_RR"].includes($("algo").value) ? "" : "none"; }
+
+function readRows() {
+  return [...$("ptable").tBodies[0].rows].map(tr => {
+    const o = {};
+    tr.querySelectorAll("input").forEach(i => o[i.dataset.f] = i.value);
+    return o;
+  });
+}
+function showErrors(list) {
+  const e = $("errors");
+  if (!list.length) { e.style.display = "none"; e.replaceChildren(); return; }
+  const ul = document.createElement("ul");
+  list.forEach(m => { const li = document.createElement("li"); li.textContent = m; ul.append(li); });
+  const h = document.createElement("strong"); h.textContent = "Fix these before running:";
+  e.replaceChildren(h, ul); e.style.display = "block";
+}
+function clearResult(){ stop(); result = null; $("out").hidden = true; $("placeholder").hidden = false; }
+
+async function run() {
+  stop();
+  let data;
+  try {
+    const r = await fetch("/api/schedule", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({algorithm: $("algo").value, quantum: $("quantum").value, processes: readRows()})});
+    data = await r.json();
+    if (!r.ok) { showErrors(data.errors || ["Unexpected server response."]); return; }
+  } catch (e) { showErrors(["Cannot reach the server. Is `python src/server.py` still running?"]); return; }
+  showErrors([]); result = data; T = 0;
+  $("slider").max = data.total_time; $("slider").value = 0;
+  $("placeholder").hidden = true; $("out").hidden = false;
+  buildStatic(); draw(); T = data.total_time; $("slider").value = T; draw();
+}
+
+function idx(name){ return result.processes.findIndex(p => p.name === name); }
+
+function buildStatic() {
+  const s = $("stats");
+  s.replaceChildren();
+  [["Algorithm", ALGOS[result.algorithm] + (result.quantum ? ` (q=${result.quantum})` : "")],
+   ["Total time", result.total_time], ["CPU utilization", result.cpu_utilization + "%"]].forEach(([k, v]) => {
+    const d = document.createElement("span"), b = document.createElement("b");
+    b.textContent = v; d.append(k + ": ", b); s.append(d);
+  });
+  // axis
+  const ax = $("axis"); ax.replaceChildren();
+  const marks = new Set([0]); result.segments.forEach(g => marks.add(g.end));
+  let lastPct = -10;
+  [...marks].sort((a, b) => a - b).forEach(t => {
+    const pct = 100 * t / result.total_time;
+    if (pct - lastPct < 2.5 && t !== result.total_time) return;
+    const sp = document.createElement("span"); sp.style.left = pct + "%"; sp.textContent = t; ax.append(sp); lastPct = pct;
+  });
+  $("gantt").style.setProperty("--unit", `${100 / result.total_time}%`);
+  // table
+  const t = $("mtable"); t.replaceChildren();
+  const head = t.createTHead().insertRow();
+  ["Process","Arrival","Burst","Priority","Completion","Turnaround","Waiting","Response"].forEach((h, i) => {
+    const th = document.createElement("th"); th.textContent = h; if (i) th.className = "num"; head.append(th);
+  });
+  const body = t.createTBody();
+  result.processes.forEach((p, i) => {
+    const r = body.insertRow();
+    const c0 = r.insertCell(), dot = document.createElement("span");
+    dot.className = "dot"; dot.style.background = color(i); c0.append(dot, p.name);
+    ["arrival","burst","priority","completion","turnaround","waiting","response"].forEach(k => {
+      const c = r.insertCell(); c.className = "num"; c.textContent = p[k];
+    });
+  });
+  const f = t.createTFoot().insertRow(), a = result.averages;
+  const lbl = f.insertCell(); lbl.textContent = "Average"; lbl.colSpan = 5;
+  [a.turnaround, a.waiting, a.response].forEach(v => { const c = f.insertCell(); c.className = "num"; c.textContent = v; });
+}
+
+function draw() {
+  const g = $("gantt"); g.replaceChildren();
+  const total = result.total_time;
+  let running = "idle";
+  result.segments.forEach(s => {
+    const vis = Math.max(0, Math.min(s.end, T) - s.start);
+    if (!vis) return;
+    if (T > s.start && T <= s.end) running = s.name || "idle (no process ready)";
+    const d = document.createElement("div");
+    d.className = "seg" + (s.name ? "" : " idle");
+    d.style.left = (100 * s.start / total) + "%"; d.style.width = (100 * vis / total) + "%";
+    if (s.name) d.style.background = color(idx(s.name));
+    d.textContent = s.name || "idle";
+    d.title = `${s.name || "idle"}: ${s.start} to ${s.end}`;
+    g.append(d);
+  });
+  $("clock").textContent = T === 0 ? "t = 0" : `t = ${T} / ${total}, running: ${running}`;
+  $("slider").value = T;
+}
+function stop(){ if (timer) clearInterval(timer); timer = null; $("play").textContent = "Play"; }
+function step(d){ if (!result) return; stop(); T = Math.max(0, Math.min(result.total_time, T + d)); draw(); }
+
+$("algo").onchange = () => { syncQuantum(); clearResult(); };
+$("preset").onchange = () => setConfig(PRESETS[$("preset").value]);
+$("add").onclick = () => addRow(mk("P" + ($("ptable").tBodies[0].rows.length + 1), 0, 1, 1));
+$("reset").onclick = () => { $("preset").selectedIndex = 0; setConfig(PRESETS[$("preset").value]); };
+$("run").onclick = run;
+$("back").onclick = () => step(-1);
+$("fwd").onclick = () => step(1);
+$("slider").oninput = e => { stop(); T = +e.target.value; draw(); };
+$("play").onclick = () => {
+  if (!result) return;
+  if (timer) return stop();
+  if (T >= result.total_time) T = 0;
+  $("play").textContent = "Pause";
+  timer = setInterval(() => { if (T >= result.total_time) return stop(); T++; draw(); }, 350);
+};
+$("load").onclick = () => $("file").click();
+$("file").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    const c = JSON.parse(await f.text());
+    if (!c || !Array.isArray(c.processes)) throw 0;
+    setConfig(c);
+  } catch { showErrors(["That file is not a valid scenario. Expected JSON with \"algorithm\", \"quantum\" and a \"processes\" list."]); }
+};
+
+setConfig(PRESETS[Object.keys(PRESETS)[1]]); $("preset").selectedIndex = 1;
+</script>
+</body>
+</html>
