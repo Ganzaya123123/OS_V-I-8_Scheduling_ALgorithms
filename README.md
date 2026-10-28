@@ -1,61 +1,72 @@
-# V-1-8 – Scheduling Algorithms
+# V-1-8 – CPU төлөвлөлтийн алгоритмууд (Scheduling Algorithms)
 
-**Course:** F.CSM302 Operating Systems, Assignment 1 (БД1)
-**Code:** V-1-8 | **Textbook:** Operating System Concepts, ch. 5 programming project
-**Members:** (name, student ID) – fill in
+**Хичээл:** F.CSM302 Үйлдлийн систем, Бие даалт 1 (БД1)
+**Хуваарилалтын код:** V-1-8 (V өдөр, 1-р цаг, 8-р сэдэв)
+**Сурах бичиг:** Operating System Concepts (2018), 5-р бүлэг "CPU Scheduling", Programming Project
 
-## Goal
-Implement FCFS, SJF, Priority, Round-Robin and Priority-with-Round-Robin
-scheduling, and show the result as an interactive Gantt chart with waiting,
-turnaround and response times.
+**Багийн гишүүд:** B210910822, B231910041, B241910005, B241910028, B241940016, B242270137
+(нэр, хариуцсан ажлыг `docs/team.json` болон тайлангийн Хавсралт A-д бичсэн)
+
+![Gantt Chart](docs/screenshots/ui_priority.png)
+
+## Зорилго
+FCFS, SJF, Priority, Round Robin, Priority + Round Robin гэсэн таван CPU төлөвлөлтийн алгоритмыг хэрэгжүүлж,
+процессын ирэх цаг, CPU ээлж, эрэмбэ, квантыг өөрчилж дахин туршиж болох болгосон. Үр дүнг **D3.js Gantt Chart**-аар
+харуулж, процесс бүрийн хүлээлтийн хугацаа (waiting), эргэлтийн хугацаа (turnaround), response time-ийг тооцно.
 
 ## Quick Start
-Requires **Python 3.9+**. No packages to install.
+Шаардлага: **Python 3.9 эсвэл түүнээс дээш**. Нэмэлт сан суулгах шаардлагагүй, интернет хэрэггүй.
 
 ```bash
 git clone https://github.com/Ganzaya123123/OS_V-I-8_Scheduling_ALgorithms.git
 cd OS_V-I-8_Scheduling_ALgorithms
-python src/server.py            # add --port 8080 if 8000 is busy
+python3 src/server.py            # 8000 порт завгүй бол: --port 8080
 ```
-Open http://127.0.0.1:8000, choose an example, press **Run schedule**.
-Stop with Ctrl+C.
+Хөтөч дээр **http://127.0.0.1:8000** хаягийг нээж, "Жишээ" жагсаалтаас сонгоод **Төлөвлөлт ажиллуулах** товчийг дарна.
+Зогсоох: `Ctrl+C`. (Windows дээр `python3` олдохгүй бол `python` эсвэл `py` гэж бичнэ.)
 
-Textbook-style command line (task file lines are `[name], [priority], [burst]`):
+### Командын мөр (номын форматтай)
+Даалгаврын файлын мөр бүр: `[даалгаврын нэр], [эрэмбэ], [CPU ээлж]`, жишээ нь `T1, 4, 20`.
 ```bash
-python src/cli.py examples/textbook_tasks.txt PRIORITY
-python src/cli.py examples/textbook_tasks.txt RR --quantum 10
-python src/cli.py examples/textbook_tasks.txt PRIORITY_RR --priority-order low
+python3 src/cli.py examples/textbook_tasks.txt PRIORITY
+python3 src/cli.py examples/textbook_tasks.txt RR --quantum 10
+python3 src/cli.py examples/textbook_tasks.txt PRIORITY_RR --priority-order low
 ```
-Algorithms: `FCFS`, `SJF`, `PRIORITY`, `RR`, `PRIORITY_RR`.
+Алгоритм: `FCFS`, `SJF`, `PRIORITY`, `RR`, `PRIORITY_RR`.
+Буруу файл өгвөл мөр бүрийн алдааг Монгол хэлээр хэвлэж, гарах код 1 байна (`examples/bad_tasks.txt`-ээр турших).
 
-## Tests
+## Тест
 ```bash
-python -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -v     # Ran 28 tests ... OK
 ```
+Номын болон лекцийн жишээ (FCFS 17, SJF 7, RR 5.67, Priority 8.2), номын T1..T5 даалгавар, сул (idle) завсар, ирэлтээр
+тасалдуулах, захын болон буруу оролтын тестүүд орсон.
 
-## Layout
-| Path | Content |
+## Бүтэц
+| Зам | Агуулга |
 |---|---|
-| `src/schedulers.py` | Algorithms and input validation |
-| `src/server.py` | Local web server and `POST /api/schedule` |
-| `src/cli.py` | Command line version reading the textbook task file |
-| `src/static/index.html` | UI: process table, Gantt chart, playback |
-| `tests/` | Textbook examples, boundary and error tests |
-| `examples/` | `.txt` task files and `.json` scenarios for **Load .json / .txt file** |
-| `docs/` | Manual PDF, screenshots |
+| `src/schedulers.py` | Алгоритмууд, оролтын шалгалт, task файл задлагч |
+| `src/server.py` | Локал вэб сервер, `POST /api/schedule`, `/static/` |
+| `src/cli.py` | Номын форматтай файлыг уншдаг командын мөрийн хувилбар |
+| `src/static/index.html` | UI: процессын хүснэгт, D3 Gantt Chart, тоглуулагч |
+| `src/static/vendor/` | D3.js v7.9.0 (`d3.min.js`) ба лиценз |
+| `tests/` | Unit тест (номын жишээ, захын болон алдааны тохиолдол) |
+| `examples/` | `.txt` даалгаврын файл, `.json` сценари (UI-ийн "файл ачаалах"-д) |
+| `docs/` | Тайлан, Manual (PDF), screenshot, PDF үүсгэгч `build_docs.py` |
 
-## Conventions
-- Textbook project: priority is 1 to 10 and a **higher number = higher priority**
-  (default). The UI and CLI also offer `low` (lower number = higher priority), which
-  is the convention of the chapter 5.3 lecture examples.
-- RR time quantum defaults to **10 ms** (textbook); it can be changed.
-- Task file: `[name], [priority], [burst]`, all tasks arrive at time 0.
-  The UI and JSON scenarios additionally allow an arrival time.
-- Priority+RR: highest priority runs first, equal priorities rotate by quantum,
-  and a newly arrived higher-priority process preempts.
-- Response time = first CPU start - arrival. Waiting = turnaround - burst.
+Дэлгэрэнгүйг [тайлан](docs/V-1-8_BD1_Report.pdf) ба [Manual](docs/V-1-8_Manual.pdf)-аас үзнэ.
 
-## Нэр томьёо (Lec 5-ын дагуу)
+## Тохиролцоо ба дүрэм
+- Номын төсөл: эрэмбэ **1-ээс 10**, **их тоо = өндөр эрэмбэ** (анхдагч). UI болон CLI-д `low` (бага тоо = өндөр эрэмбэ)
+  сонголт бий. Энэ нь лекцийн 5.3 хэсгийн жишээний дүрэм.
+- Round Robin-ий квант анхдагчаар **10 ms** (ном), өөрчилж болно.
+- Task файл: `[нэр], [эрэмбэ], [CPU ээлж]`, бүх даалгавар 0 цагт ирнэ. UI болон JSON сценарид ирэх цагийг нэмж өгч болно.
+- Priority + RR: өндөр эрэмбэтэй нь эхэлж, адил эрэмбэтэй нь квантаар ээлжлэн ажиллана; өндөр эрэмбэтэй процесс шинээр
+  ирвэл одоогийнхыг тасалдуулна.
+- Response time = CPU анх авсан цаг - ирэх цаг. Waiting = turnaround - CPU ээлж. Turnaround = дуусах цаг - ирэх цаг.
+- Оролтын хязгаар: ихдээ 50 процесс, утга ≤ 100000, эрэмбэ 1..10, бүх утга бүхэл тоо.
+
+## Нэр томьёо
 | Код / UI | Монгол | English |
 |---|---|---|
 | arrival | Ирэх цаг | arrival time |
@@ -68,6 +79,14 @@ python -m unittest discover -s tests -v
 | idle | Сул (idle) | idle |
 | FCFS / SJF / Priority / RR | Эхэнд ирсэн нь эхэлж үйлчлүүлэх / Богино-ажил-эхэнд / Эрэмбэлэлттэй төлөвлөлт / Round Robin | - |
 
-## Third-party code, libraries and AI
-- Libraries: Python standard library only on the server. UI uses **D3.js v7.9.0** (ISC license), vendored in `src/static/vendor/d3.min.js` so no internet is needed.
-- AI assistance: (describe what was generated and what the team reviewed/changed).
+## Known issues
+- Context switch-ийн зардал, I/O ээлж, SRTF, multilevel feedback queue, aging хэрэгжээгүй.
+- Хугацаа бүхэл тоо. Сервер зөвхөн локал (`127.0.0.1`) дээр ажиллана.
+- Серверийн логт `GET /favicon.ico 404` гарах нь хэвийн.
+
+## Гуравдагч талын код, сан, AI
+- **Сан:** серверт зөвхөн Python стандарт сан. UI-д **D3.js v7.9.0** (ISC лиценз, https://d3js.org) ашигласан бөгөөд
+  интернэтгүй ажиллуулахын тулд `src/static/vendor/d3.min.js`-ээр репозиторид хадгалсан.
+- **AI ашигласан тухай:** код, тест, тайлан, Manual-ийн эхийг бэлтгэхэд AI туслах (Claude, Anthropic) ашигласан. Баг код,
+  тестийг өөрсдөө ажиллуулж, UI-ийн screenshot-ыг авч шалгасан бөгөөд туршилтаас илэрсэн алдааг (алдаа гарахад хуучин
+  Gantt Chart дэлгэц дээр үлдэх) зассан.
