@@ -3,7 +3,9 @@
 Algorithms: FCFS, SJF (non-preemptive), PRIORITY (non-preemptive),
 RR (round-robin) and PRIORITY_RR (priority order, round-robin among equals,
 preempted when a higher-priority process arrives).
-Convention: a SMALLER priority number means a HIGHER priority.
+Priority convention follows the textbook project: priorities range 1..10 and a
+HIGHER number means a HIGHER priority (default, priority_order="high").
+priority_order="low" gives the chapter-5 lecture convention (smaller = higher).
 Standard library only.
 """
 
@@ -17,6 +19,10 @@ ALGORITHMS = {
 NEEDS_QUANTUM = {"RR", "PRIORITY_RR"}
 MAX_PROCESSES = 50
 MAX_VALUE = 100000
+PRIORITY_MIN, PRIORITY_MAX = 1, 10
+DEFAULT_QUANTUM = 10  # textbook: time quantum is 10 ms
+PRIORITY_ORDERS = {"high": "Higher number = higher priority (textbook)",
+                   "low": "Lower number = higher priority"}
 
 
 class ValidationError(ValueError):
@@ -37,9 +43,11 @@ def _to_int(value):
     raise ValueError
 
 
-def validate(raw_processes, algorithm, quantum):
+def validate(raw_processes, algorithm, quantum, priority_order="high"):
     """Return (clean_processes, quantum) or raise ValidationError."""
     errors = []
+    if priority_order not in PRIORITY_ORDERS:
+        errors.append(f"Unknown priority order '{priority_order}'. Use 'high' or 'low'.")
     if algorithm not in ALGORITHMS:
         errors.append(f"Unknown algorithm '{algorithm}'. Choose one of: {', '.join(ALGORITHMS)}.")
     if not isinstance(raw_processes, list) or not raw_processes:
@@ -60,10 +68,11 @@ def validate(raw_processes, algorithm, quantum):
             errors.append(f"{label}: name '{name}' is used more than once.")
         seen.add(name)
         vals = {}
-        for field, minimum in (("arrival", 0), ("burst", 1), ("priority", 0)):
+        for field, minimum, top in (("arrival", 0, MAX_VALUE), ("burst", 1, MAX_VALUE),
+                                    ("priority", PRIORITY_MIN, PRIORITY_MAX)):
             raw = p.get(field)
             if raw is None or raw == "":
-                raw = 0 if field != "burst" else raw
+                raw = {"arrival": 0, "priority": PRIORITY_MIN}.get(field, raw)
             try:
                 v = _to_int(raw)
             except (ValueError, TypeError):
@@ -71,8 +80,8 @@ def validate(raw_processes, algorithm, quantum):
                 continue
             if v < minimum:
                 errors.append(f"{label}: {field} must be at least {minimum}.")
-            elif v > MAX_VALUE:
-                errors.append(f"{label}: {field} must be at most {MAX_VALUE}.")
+            elif v > top:
+                errors.append(f"{label}: {field} must be at most {top}.")
             else:
                 vals[field] = v
         if len(vals) == 3 and name:
@@ -81,7 +90,7 @@ def validate(raw_processes, algorithm, quantum):
     q = None
     if algorithm in NEEDS_QUANTUM:
         try:
-            q = _to_int(quantum)
+            q = _to_int(DEFAULT_QUANTUM if quantum in (None, "") else quantum)
             if q < 1 or q > MAX_VALUE:
                 errors.append(f"Quantum must be between 1 and {MAX_VALUE}.")
         except (ValueError, TypeError):
@@ -91,6 +100,11 @@ def validate(raw_processes, algorithm, quantum):
     return clean, q
 
 
+def _rank(priority, priority_order):
+    """Smaller rank = scheduled first."""
+    return -priority if priority_order == "high" else priority
+
+
 def _push(segs, name, start, end):
     if segs and segs[-1]["name"] == name and segs[-1]["end"] == start:
         segs[-1]["end"] = end
@@ -98,7 +112,7 @@ def _push(segs, name, start, end):
         segs.append({"name": name, "start": start, "end": end})
 
 
-def _non_preemptive(procs, key):
+def _non_preemptive(procs, key):  # key already encodes the priority order
     t, done, segs, first, finish = 0, set(), [], {}, {}
     while len(done) < len(procs):
         ready = [p for p in procs if p["name"] not in done and p["arrival"] <= t]
@@ -117,7 +131,7 @@ def _non_preemptive(procs, key):
     return segs, first, finish
 
 
-def _round_robin(procs, quantum, use_priority):
+def _round_robin(procs, quantum, use_priority, order="high"):
     rem = {p["name"]: p["burst"] for p in procs}
     seq, first, finish, segs = {}, {}, {}, []
     counter = 0
@@ -138,14 +152,14 @@ def _round_robin(procs, quantum, use_priority):
             _push(segs, None, t, nxt)
             t = nxt
             continue
-        p = min(ready, key=lambda p: ((p["priority"] if use_priority else 0), seq[p["name"]]))
+        p = min(ready, key=lambda p: ((_rank(p["priority"], order) if use_priority else 0), seq[p["name"]]))
         name = p["name"]
         run = min(quantum, rem[name])
         preempted = False
         if use_priority:
             sooner = [q["arrival"] for q in procs
                       if q["name"] not in seq and t < q["arrival"] < t + run
-                      and q["priority"] < p["priority"]]
+                      and _rank(q["priority"], order) < _rank(p["priority"], order)]
             if sooner:
                 run, preempted = min(sooner) - t, True
         first.setdefault(name, t)
@@ -161,18 +175,18 @@ def _round_robin(procs, quantum, use_priority):
     return segs, first, finish
 
 
-def run_schedule(raw_processes, algorithm, quantum=None):
-    procs, q = validate(raw_processes, algorithm, quantum)
+def run_schedule(raw_processes, algorithm, quantum=None, priority_order="high"):
+    procs, q = validate(raw_processes, algorithm, quantum, priority_order)
     if algorithm == "FCFS":
         res = _non_preemptive(procs, lambda p: (p["arrival"], p["idx"]))
     elif algorithm == "SJF":
         res = _non_preemptive(procs, lambda p: (p["burst"], p["arrival"], p["idx"]))
     elif algorithm == "PRIORITY":
-        res = _non_preemptive(procs, lambda p: (p["priority"], p["arrival"], p["idx"]))
+        res = _non_preemptive(procs, lambda p: (_rank(p["priority"], priority_order), p["arrival"], p["idx"]))
     elif algorithm == "RR":
-        res = _round_robin(procs, q, False)
+        res = _round_robin(procs, q, False, priority_order)
     else:
-        res = _round_robin(procs, q, True)
+        res = _round_robin(procs, q, True, priority_order)
     segs, first, finish = res
 
     rows = []
@@ -188,6 +202,27 @@ def run_schedule(raw_processes, algorithm, quantum=None):
     avg = {m: round(sum(r[m] for r in rows) / k, 2) for m in ("waiting", "turnaround", "response")}
     busy = sum(s["end"] - s["start"] for s in segs if s["name"])
     end = segs[-1]["end"]
-    return {"algorithm": algorithm, "quantum": q, "segments": segs, "processes": rows,
+    return {"algorithm": algorithm, "quantum": q, "priority_order": priority_order, "segments": segs, "processes": rows,
             "averages": avg, "total_time": end,
             "cpu_utilization": round(100 * busy / end, 2) if end else 0}
+
+
+def parse_task_text(text):
+    """Parse the textbook task file: one '[name], [priority], [burst]' per line.
+
+    Blank lines and lines starting with '#' are ignored. All tasks arrive at 0.
+    Returns (processes, errors); processes are raw dicts for run_schedule().
+    """
+    procs, errors = [], []
+    for n, line in enumerate(str(text).splitlines(), start=1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = [x.strip() for x in line.split(",")]
+        if len(parts) != 3 or not all(parts):
+            errors.append(f"Line {n}: expected '[name], [priority], [burst]' but found '{line}'.")
+            continue
+        procs.append({"name": parts[0], "priority": parts[1], "burst": parts[2], "arrival": 0})
+    if not procs and not errors:
+        errors.append("The task file has no tasks.")
+    return procs, errors

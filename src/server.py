@@ -45,7 +45,8 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             return self._send(400, {"errors": ["Request body is not valid JSON."]})
         try:
-            result = run_schedule(payload.get("processes"), payload.get("algorithm"), payload.get("quantum"))
+            result = run_schedule(payload.get("processes"), payload.get("algorithm"), payload.get("quantum"),
+                                  payload.get("priority_order", "high"))
         except ValidationError as e:
             return self._send(400, {"errors": e.errors})
         self._send(200, result)

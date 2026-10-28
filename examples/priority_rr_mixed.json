@@ -2,10 +2,36 @@
   "algorithm": "PRIORITY_RR",
   "quantum": 2,
   "processes": [
-    {"name": "P1", "arrival": 0, "burst": 7, "priority": 3},
-    {"name": "P2", "arrival": 1, "burst": 4, "priority": 2},
-    {"name": "P3", "arrival": 2, "burst": 3, "priority": 2},
-    {"name": "P4", "arrival": 4, "burst": 2, "priority": 1},
-    {"name": "P5", "arrival": 20, "burst": 3, "priority": 2}
-  ]
+    {
+      "name": "P1",
+      "arrival": 0,
+      "burst": 7,
+      "priority": 3
+    },
+    {
+      "name": "P2",
+      "arrival": 1,
+      "burst": 4,
+      "priority": 2
+    },
+    {
+      "name": "P3",
+      "arrival": 2,
+      "burst": 3,
+      "priority": 2
+    },
+    {
+      "name": "P4",
+      "arrival": 4,
+      "burst": 2,
+      "priority": 1
+    },
+    {
+      "name": "P5",
+      "arrival": 20,
+      "burst": 3,
+      "priority": 2
+    }
+  ],
+  "priority_order": "low"
 }

@@ -51,7 +51,7 @@ tfoot td{font-weight:650}
 <body>
 <header>
   <h1>CPU Scheduling Simulator</h1>
-  <p>V-1-8 · Operating System Concepts, chapter 5. Pick an algorithm, edit the processes, run, then step through the Gantt chart.</p>
+  <p>V-1-8 · Operating System Concepts, chapter 5. Pick an algorithm, edit the tasks (or load the textbook <code>T1, 4, 20</code> file), run, then step through the Gantt chart.</p>
 </header>
 <main>
 <section aria-label="Inputs">
@@ -61,19 +61,26 @@ tfoot td{font-weight:650}
   <label for="algo">Algorithm</label>
   <select id="algo"></select>
   <div id="qbox">
-    <label for="quantum">Time quantum</label>
-    <input id="quantum" type="number" min="1" value="4" style="width:100px">
+    <label for="quantum">Time quantum (ms)</label>
+    <input id="quantum" type="number" min="1" value="10" style="width:100px">
   </div>
-  <label>Processes <span style="font-weight:400;color:var(--mute)">(lower priority number = higher priority)</span></label>
+  <div id="pbox">
+    <label for="porder">Priority order</label>
+    <select id="porder">
+      <option value="high">Higher number = higher priority (textbook)</option>
+      <option value="low">Lower number = higher priority</option>
+    </select>
+  </div>
+  <label>Processes <span style="font-weight:400;color:var(--mute)">(priority 1 to 10)</span></label>
   <table id="ptable">
     <thead><tr><th>Name</th><th>Arrival</th><th>Burst</th><th>Priority</th><th></th></tr></thead>
     <tbody></tbody>
   </table>
   <div class="btns">
     <button id="add">Add process</button>
-    <button id="load">Load JSON file</button>
+    <button id="load">Load .json / .txt file</button>
     <button id="reset">Reset</button>
-    <input id="file" type="file" accept=".json,application/json" hidden>
+    <input id="file" type="file" accept=".json,.txt,application/json,text/plain" hidden>
   </div>
   <div class="btns"><button id="run" class="primary">Run schedule</button></div>
   <div id="errors" role="alert"></div>
@@ -105,13 +112,19 @@ const ALGOS = {
   PRIORITY: "Priority (non-preemptive)", RR: "Round-Robin", PRIORITY_RR: "Priority with Round-Robin"
 };
 const mk = (name, arrival, burst, priority) => ({name, arrival, burst, priority});
+const BOOK = () => [mk("T1",0,20,4), mk("T2",0,25,2), mk("T3",0,25,3), mk("T4",0,15,3), mk("T5",0,10,10)];
 const PRESETS = {
-  "Blank (one process)": {algorithm: "FCFS", quantum: 4, processes: [mk("P1", 0, 5, 1)]},
-  "FCFS: P1=24, P2=3, P3=3": {algorithm: "FCFS", quantum: 4, processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
-  "SJF: 6, 8, 7, 3": {algorithm: "SJF", quantum: 4, processes: [mk("P1",0,6,1), mk("P2",0,8,1), mk("P3",0,7,1), mk("P4",0,3,1)]},
-  "Priority: 10, 1, 2, 1, 5": {algorithm: "PRIORITY", quantum: 4, processes: [mk("P1",0,10,3), mk("P2",0,1,1), mk("P3",0,2,4), mk("P4",0,1,5), mk("P5",0,5,2)]},
-  "Round-Robin q=4: 24, 3, 3": {algorithm: "RR", quantum: 4, processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
-  "Priority + RR with idle gap": {algorithm: "PRIORITY_RR", quantum: 2, processes: [mk("P1",0,7,3), mk("P2",1,4,2), mk("P3",2,3,2), mk("P4",4,2,1), mk("P5",20,3,2)]}
+  "Blank (one process)": {algorithm: "FCFS", quantum: 10, priority_order: "high", processes: [mk("P1", 0, 5, 1)]},
+  "Textbook project tasks: FCFS": {algorithm: "FCFS", quantum: 10, priority_order: "high", processes: BOOK()},
+  "Textbook project tasks: SJF": {algorithm: "SJF", quantum: 10, priority_order: "high", processes: BOOK()},
+  "Textbook project tasks: Priority": {algorithm: "PRIORITY", quantum: 10, priority_order: "high", processes: BOOK()},
+  "Textbook project tasks: RR q=10": {algorithm: "RR", quantum: 10, priority_order: "high", processes: BOOK()},
+  "Textbook project tasks: Priority + RR": {algorithm: "PRIORITY_RR", quantum: 10, priority_order: "high", processes: BOOK()},
+  "Section 5.3 FCFS: 24, 3, 3": {algorithm: "FCFS", quantum: 4, priority_order: "high", processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
+  "Section 5.3 SJF: 6, 8, 7, 3": {algorithm: "SJF", quantum: 4, priority_order: "high", processes: [mk("P1",0,6,1), mk("P2",0,8,1), mk("P3",0,7,1), mk("P4",0,3,1)]},
+  "Section 5.3 Priority (low = high)": {algorithm: "PRIORITY", quantum: 4, priority_order: "low", processes: [mk("P1",0,10,3), mk("P2",0,1,1), mk("P3",0,2,4), mk("P4",0,1,5), mk("P5",0,5,2)]},
+  "Section 5.3 RR q=4: 24, 3, 3": {algorithm: "RR", quantum: 4, priority_order: "high", processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
+  "Priority + RR, arrivals and idle gap (low = high)": {algorithm: "PRIORITY_RR", quantum: 2, priority_order: "low", processes: [mk("P1",0,7,3), mk("P2",1,4,2), mk("P3",2,3,2), mk("P4",4,2,1), mk("P5",20,3,2)]}
 };
 const $ = id => document.getElementById(id);
 let result = null, T = 0, timer = null;
@@ -121,7 +134,7 @@ for (const k in PRESETS) $("preset").add(new Option(k, k));
 
 function color(i){ return `hsl(${(i * 67 + 205) % 360} 52% 38%)`; }
 
-function addRow(p = mk("", 0, 1, 1)) {
+function addRow(p = mk("", 0, 1, 5)) {
   const tr = document.createElement("tr");
   for (const f of ["name", "arrival", "burst", "priority"]) {
     const td = document.createElement("td"), inp = document.createElement("input");
@@ -137,12 +150,17 @@ function addRow(p = mk("", 0, 1, 1)) {
 
 function setConfig(c) {
   $("algo").value = c.algorithm in ALGOS ? c.algorithm : "FCFS";
-  $("quantum").value = c.quantum ?? 4;
+  $("quantum").value = c.quantum ?? 10;
+  $("porder").value = c.priority_order === "low" ? "low" : "high";
   $("ptable").tBodies[0].replaceChildren();
   (c.processes || []).forEach(addRow);
   syncQuantum(); clearResult(); showErrors([]);
 }
-function syncQuantum(){ $("qbox").style.display = ["RR","PRIORITY_RR"].includes($("algo").value) ? "" : "none"; }
+function syncQuantum(){
+  const a = $("algo").value;
+  $("qbox").style.display = ["RR","PRIORITY_RR"].includes(a) ? "" : "none";
+  $("pbox").style.display = ["PRIORITY","PRIORITY_RR"].includes(a) ? "" : "none";
+}
 
 function readRows() {
   return [...$("ptable").tBodies[0].rows].map(tr => {
@@ -166,7 +184,8 @@ async function run() {
   let data;
   try {
     const r = await fetch("/api/schedule", {method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({algorithm: $("algo").value, quantum: $("quantum").value, processes: readRows()})});
+      body: JSON.stringify({algorithm: $("algo").value, quantum: $("quantum").value,
+        priority_order: $("porder").value, processes: readRows()})});
     data = await r.json();
     if (!r.ok) { showErrors(data.errors || ["Unexpected server response."]); return; }
   } catch (e) { showErrors(["Cannot reach the server. Is `python src/server.py` still running?"]); return; }
@@ -239,8 +258,9 @@ function stop(){ if (timer) clearInterval(timer); timer = null; $("play").textCo
 function step(d){ if (!result) return; stop(); T = Math.max(0, Math.min(result.total_time, T + d)); draw(); }
 
 $("algo").onchange = () => { syncQuantum(); clearResult(); };
+$("porder").onchange = clearResult;
 $("preset").onchange = () => setConfig(PRESETS[$("preset").value]);
-$("add").onclick = () => addRow(mk("P" + ($("ptable").tBodies[0].rows.length + 1), 0, 1, 1));
+$("add").onclick = () => addRow(mk("P" + ($("ptable").tBodies[0].rows.length + 1), 0, 1, 5));
 $("reset").onclick = () => { $("preset").selectedIndex = 0; setConfig(PRESETS[$("preset").value]); };
 $("run").onclick = run;
 $("back").onclick = () => step(-1);
@@ -254,17 +274,36 @@ $("play").onclick = () => {
   timer = setInterval(() => { if (T >= result.total_time) return stop(); T++; draw(); }, 350);
 };
 $("load").onclick = () => $("file").click();
+function parseTxt(text) {
+  const procs = [], errs = [];
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) return;
+    const p = line.split(",").map(x => x.trim());
+    if (p.length !== 3 || p.some(x => !x)) { errs.push(`Line ${i + 1}: expected "[name], [priority], [burst]" but found "${line}".`); return; }
+    procs.push(mk(p[0], 0, p[2], p[1]));
+  });
+  if (!procs.length && !errs.length) errs.push("The task file has no tasks.");
+  return [procs, errs];
+}
 $("file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = "";
   if (!f) return;
+  const text = await f.text();
+  if (f.name.toLowerCase().endsWith(".txt")) {
+    const [procs, errs] = parseTxt(text);
+    if (errs.length) { showErrors(errs); return; }
+    setConfig({algorithm: $("algo").value, quantum: $("quantum").value, priority_order: $("porder").value, processes: procs});
+    return;
+  }
   try {
-    const c = JSON.parse(await f.text());
+    const c = JSON.parse(text);
     if (!c || !Array.isArray(c.processes)) throw 0;
     setConfig(c);
-  } catch { showErrors(["That file is not a valid scenario. Expected JSON with \"algorithm\", \"quantum\" and a \"processes\" list."]); }
+  } catch { showErrors(["That file is not a valid scenario. Expected JSON with \"algorithm\", \"quantum\" and a \"processes\" list, or a .txt file with lines like \"T1, 4, 20\"."]); }
 };
 
-setConfig(PRESETS[Object.keys(PRESETS)[1]]); $("preset").selectedIndex = 1;
+setConfig(PRESETS[Object.keys(PRESETS)[3]]); $("preset").selectedIndex = 3;
 </script>
 </body>
 </html>

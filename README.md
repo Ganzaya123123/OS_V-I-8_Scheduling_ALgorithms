@@ -20,6 +20,14 @@ python src/server.py            # add --port 8080 if 8000 is busy
 Open http://127.0.0.1:8000, choose an example, press **Run schedule**.
 Stop with Ctrl+C.
 
+Textbook-style command line (task file lines are `[name], [priority], [burst]`):
+```bash
+python src/cli.py examples/textbook_tasks.txt PRIORITY
+python src/cli.py examples/textbook_tasks.txt RR --quantum 10
+python src/cli.py examples/textbook_tasks.txt PRIORITY_RR --priority-order low
+```
+Algorithms: `FCFS`, `SJF`, `PRIORITY`, `RR`, `PRIORITY_RR`.
+
 ## Tests
 ```bash
 python -m unittest discover -s tests -v
@@ -30,16 +38,22 @@ python -m unittest discover -s tests -v
 |---|---|
 | `src/schedulers.py` | Algorithms and input validation |
 | `src/server.py` | Local web server and `POST /api/schedule` |
+| `src/cli.py` | Command line version reading the textbook task file |
 | `src/static/index.html` | UI: process table, Gantt chart, playback |
 | `tests/` | Textbook examples, boundary and error tests |
-| `examples/` | Scenario files for **Load JSON file** in the UI |
+| `examples/` | `.txt` task files and `.json` scenarios for **Load .json / .txt file** |
 | `docs/` | Manual PDF, screenshots |
 
 ## Conventions
-- Smaller priority number = higher priority.
+- Textbook project: priority is 1 to 10 and a **higher number = higher priority**
+  (default). The UI and CLI also offer `low` (lower number = higher priority), which
+  is the convention of the chapter 5.3 lecture examples.
+- RR time quantum defaults to **10 ms** (textbook); it can be changed.
+- Task file: `[name], [priority], [burst]`, all tasks arrive at time 0.
+  The UI and JSON scenarios additionally allow an arrival time.
 - Priority+RR: highest priority runs first, equal priorities rotate by quantum,
   and a newly arrived higher-priority process preempts.
-- Response time = first CPU start − arrival. Waiting = turnaround − burst.
+- Response time = first CPU start - arrival. Waiting = turnaround - burst.
 
 ## Third-party code, libraries and AI
 - Libraries: none (Python standard library only).

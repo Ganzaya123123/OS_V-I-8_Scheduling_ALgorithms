@@ -2,8 +2,23 @@
   "algorithm": "RR",
   "quantum": 4,
   "processes": [
-    {"name": "P1", "arrival": 0, "burst": 24, "priority": 1},
-    {"name": "P2", "arrival": 0, "burst": 3, "priority": 1},
-    {"name": "P3", "arrival": 0, "burst": 3, "priority": 1}
+    {
+      "name": "P1",
+      "arrival": 0,
+      "burst": 24,
+      "priority": 1
+    },
+    {
+      "name": "P2",
+      "arrival": 0,
+      "burst": 3,
+      "priority": 1
+    },
+    {
+      "name": "P3",
+      "arrival": 0,
+      "burst": 3,
+      "priority": 1
+    }
   ]
 }

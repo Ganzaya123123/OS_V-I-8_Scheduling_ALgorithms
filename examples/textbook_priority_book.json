@@ -1,0 +1,11 @@
+{
+  "algorithm": "PRIORITY",
+  "priority_order": "high",
+  "processes": [
+    {"name": "T1", "arrival": 0, "burst": 20, "priority": 4},
+    {"name": "T2", "arrival": 0, "burst": 25, "priority": 2},
+    {"name": "T3", "arrival": 0, "burst": 25, "priority": 3},
+    {"name": "T4", "arrival": 0, "burst": 15, "priority": 3},
+    {"name": "T5", "arrival": 0, "burst": 10, "priority": 10}
+  ]
+}
