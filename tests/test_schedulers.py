@@ -77,9 +77,9 @@ class ProjectSpec(unittest.TestCase):
 
     def test_task_file_parser_errors(self):
         _, errs = parse_task_text("T1, 4\nT2, x, 5")
-        self.assertIn("Line 1", errs[0])
+        self.assertIn("1-р мөр", errs[0])
         _, errs = parse_task_text("\n# only comment")
-        self.assertIn("no tasks", errs[0])
+        self.assertIn("даалгавар алга", errs[0])
 
 
 class Extra(unittest.TestCase):
@@ -114,45 +114,45 @@ class Errors(unittest.TestCase):
         return " ".join(c.exception.errors)
 
     def test_empty(self):
-        self.assertIn("at least one", self.err([]))
+        self.assertIn("Дор хаяж нэг", self.err([]))
 
     def test_zero_burst(self):
-        self.assertIn("burst must be at least 1", self.err([P("A", 0)]))
+        self.assertIn("CPU ээлж (burst) хамгийн багадаа 1", self.err([P("A", 0)]))
 
     def test_negative_arrival(self):
-        self.assertIn("arrival must be at least 0", self.err([P("A", 1, -1)]))
+        self.assertIn("ирэх цаг хамгийн багадаа 0", self.err([P("A", 1, -1)]))
 
     def test_non_numeric(self):
-        self.assertIn("whole number", self.err([P("A", "abc")]))
+        self.assertIn("бүхэл тоо", self.err([P("A", "abc")]))
 
     def test_decimal_rejected(self):
-        self.assertIn("whole number", self.err([P("A", "2.5")]))
+        self.assertIn("бүхэл тоо", self.err([P("A", "2.5")]))
 
     def test_duplicate_names(self):
-        self.assertIn("more than once", self.err([P("A", 1), P("A", 2)]))
+        self.assertIn("давхардсан", self.err([P("A", 1), P("A", 2)]))
 
     def test_missing_quantum_uses_default(self):
         self.assertEqual(run_schedule([P("A", 1)], "RR", None)["quantum"], 10)
 
     def test_non_numeric_quantum(self):
-        self.assertIn("Quantum", self.err([P("A", 1)], "RR", "abc"))
+        self.assertIn("Квант", self.err([P("A", 1)], "RR", "abc"))
 
     def test_zero_quantum(self):
-        self.assertIn("Quantum", self.err([P("A", 1)], "RR", 0))
+        self.assertIn("Квант", self.err([P("A", 1)], "RR", 0))
 
     def test_unknown_algorithm(self):
-        self.assertIn("Unknown algorithm", self.err([P("A", 1)], "XYZ"))
+        self.assertIn("Мэдэгдэхгүй алгоритм", self.err([P("A", 1)], "XYZ"))
 
     def test_priority_out_of_range(self):
-        self.assertIn("priority must be at least 1", self.err([P("A", 1, 0, 0)]))
-        self.assertIn("priority must be at most 10", self.err([P("A", 1, 0, 11)]))
+        self.assertIn("эрэмбэ хамгийн багадаа 1", self.err([P("A", 1, 0, 0)]))
+        self.assertIn("эрэмбэ хамгийн ихдээ 10", self.err([P("A", 1, 0, 11)]))
 
     def test_bad_priority_order(self):
         with self.assertRaises(ValidationError):
             run_schedule([P("A", 1)], "FCFS", priority_order="up")
 
     def test_huge_value(self):
-        self.assertIn("at most", self.err([P("A", 10**9)]))
+        self.assertIn("хамгийн ихдээ", self.err([P("A", 10**9)]))
 
 
 if __name__ == "__main__":

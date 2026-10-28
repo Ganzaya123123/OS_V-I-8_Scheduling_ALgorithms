@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from schedulers import ALGORITHMS, ValidationError, run_schedule
 
-STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+STATIC = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"))
 MAX_BODY = 1_000_000
 
 
@@ -26,24 +26,32 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, f.read(), "text/html; charset=utf-8")
         elif self.path == "/api/algorithms":
             self._send(200, ALGORITHMS)
+        elif self.path.startswith("/static/"):
+            full = os.path.realpath(os.path.join(STATIC, self.path[len("/static/"):].split("?")[0]))
+            if not full.startswith(STATIC + os.sep) or not os.path.isfile(full):
+                return self._send(404, {"errors": ["Олдсонгүй."]})
+            ctype = {".js": "application/javascript", ".txt": "text/plain; charset=utf-8"}.get(
+                os.path.splitext(full)[1], "application/octet-stream")
+            with open(full, "rb") as f:
+                self._send(200, f.read(), ctype)
         else:
-            self._send(404, {"errors": ["Not found."]})
+            self._send(404, {"errors": ["Олдсонгүй."]})
 
     def do_POST(self):
         if self.path != "/api/schedule":
-            return self._send(404, {"errors": ["Not found."]})
+            return self._send(404, {"errors": ["Олдсонгүй."]})
         try:
             length = int(self.headers.get("Content-Length", 0))
         except ValueError:
             length = 0
         if length <= 0 or length > MAX_BODY:
-            return self._send(400, {"errors": ["Request body is missing or too large."]})
+            return self._send(400, {"errors": ["Хүсэлтийн агуулга хоосон эсвэл хэт том байна."]})
         try:
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
                 raise ValueError
         except ValueError:
-            return self._send(400, {"errors": ["Request body is not valid JSON."]})
+            return self._send(400, {"errors": ["Хүсэлтийн агуулга зөв JSON биш байна."]})
         try:
             result = run_schedule(payload.get("processes"), payload.get("algorithm"), payload.get("quantum"),
                                   payload.get("priority_order", "high"))
@@ -61,11 +69,11 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     a = ap.parse_args()
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
-    print(f"Open http://{a.host}:{a.port}  (Ctrl+C to stop)")
+    print(f"Хөтөч дээр http://{a.host}:{a.port} хаягийг нээнэ үү (зогсоох: Ctrl+C)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopped.")
+        print("\nЗогссон.")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mn">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CPU Scheduling Simulator</title>
+<title>CPU Төлөвлөлтийн симулятор</title>
 <style>
 :root{--bg:#e9eef3;--panel:#fff;--ink:#17222d;--mute:#5b6b7a;--line:#cfd8e1;--accent:#0b5cad;--err:#a4261b;--errbg:#fdecea;--idle:#d5dce3}
 *{box-sizing:border-box}
@@ -31,142 +31,140 @@ button.primary:hover{background:#094a8d}
 button.del{padding:2px 8px}
 #errors{display:none;margin-top:12px;padding:10px 12px;background:var(--errbg);border-left:4px solid var(--err);color:var(--err);border-radius:4px}
 #errors ul{margin:4px 0 0;padding-left:18px}
-#gantt{position:relative;height:56px;margin:14px 0 0;background:repeating-linear-gradient(90deg,transparent 0 calc(var(--unit,10px) - 1px),#eef2f6 calc(var(--unit,10px) - 1px) var(--unit,10px));border:1px solid var(--line);border-radius:4px}
-.seg{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;overflow:hidden;border-right:1px solid rgba(255,255,255,.7);white-space:nowrap}
-.seg.idle{background:var(--idle);color:var(--mute);font-weight:400}
-#axis{position:relative;height:22px;font-size:12px;color:var(--mute)}
-#axis span{position:absolute;transform:translateX(-50%)}
+#gantt{display:block;width:100%;height:auto;margin-top:12px}
+#gantt .tick text{fill:var(--mute);font-size:12px}
+#gantt .domain,#gantt .tick line{stroke:var(--line)}
+#gantt .seg text{fill:#fff;font-weight:600;font-size:13px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+#gantt .seg.idle text{fill:var(--mute);font-weight:400}
+#gantt .cursor{stroke:var(--err);stroke-width:2;stroke-dasharray:4 3}
 .player{display:flex;align-items:center;gap:8px;margin-top:10px}
 .player input[type=range]{flex:1;padding:0}
-#clock{min-width:150px;color:var(--mute)}
+#clock{min-width:170px;color:var(--mute)}
 #results table td,#results table th{border-bottom:1px solid var(--line);padding:5px 8px}
 .num{text-align:right}
 tfoot td{font-weight:650}
 .dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 .empty{color:var(--mute)}
-.stats{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px;color:var(--mute)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 0;color:var(--mute)}
 .stats b{color:var(--ink)}
 </style>
 </head>
 <body>
 <header>
-  <h1>CPU Scheduling Simulator</h1>
-  <p>V-1-8 · Operating System Concepts, chapter 5. Pick an algorithm, edit the tasks (or load the textbook <code>T1, 4, 20</code> file), run, then step through the Gantt chart.</p>
+  <h1>CPU Төлөвлөлтийн симулятор</h1>
+  <p>V-1-8 · Operating System Concepts, 5-р бүлэг. Алгоритмаа сонгож, процессуудаа засаад ажиллуулж, Gantt Chart-ийг алхам алхмаар үзнэ.</p>
 </header>
 <main>
-<section aria-label="Inputs">
-  <h2>Inputs</h2>
-  <label for="preset">Example</label>
+<section aria-label="Оролт">
+  <h2>Оролт</h2>
+  <label for="preset">Жишээ</label>
   <select id="preset"></select>
-  <label for="algo">Algorithm</label>
+  <label for="algo">Төлөвлөлтийн алгоритм</label>
   <select id="algo"></select>
   <div id="qbox">
-    <label for="quantum">Time quantum (ms)</label>
+    <label for="quantum">Квант (time quantum, ms)</label>
     <input id="quantum" type="number" min="1" value="10" style="width:100px">
   </div>
   <div id="pbox">
-    <label for="porder">Priority order</label>
+    <label for="porder">Эрэмбийн дараалал</label>
     <select id="porder">
-      <option value="high">Higher number = higher priority (textbook)</option>
-      <option value="low">Lower number = higher priority</option>
+      <option value="high">Их тоо = өндөр эрэмбэ (ном)</option>
+      <option value="low">Бага тоо = өндөр эрэмбэ</option>
     </select>
   </div>
-  <label>Processes <span style="font-weight:400;color:var(--mute)">(priority 1 to 10)</span></label>
+  <label>Процессууд <span style="font-weight:400;color:var(--mute)">(эрэмбэ 1-ээс 10)</span></label>
   <table id="ptable">
-    <thead><tr><th>Name</th><th>Arrival</th><th>Burst</th><th>Priority</th><th></th></tr></thead>
+    <thead><tr><th>Нэр</th><th>Ирэх цаг</th><th>CPU ээлж</th><th>Эрэмбэ</th><th></th></tr></thead>
     <tbody></tbody>
   </table>
   <div class="btns">
-    <button id="add">Add process</button>
-    <button id="load">Load .json / .txt file</button>
-    <button id="reset">Reset</button>
+    <button id="add">Процесс нэмэх</button>
+    <button id="load">.json / .txt файл ачаалах</button>
+    <button id="reset">Шинэчлэх (reset)</button>
     <input id="file" type="file" accept=".json,.txt,application/json,text/plain" hidden>
   </div>
-  <div class="btns"><button id="run" class="primary">Run schedule</button></div>
+  <div class="btns"><button id="run" class="primary">Төлөвлөлт ажиллуулах</button></div>
   <div id="errors" role="alert"></div>
 </section>
 
 <section id="results" aria-live="polite">
-  <h2>Gantt chart</h2>
-  <p class="empty" id="placeholder">Run a schedule to see the chart. Each coloured block is one CPU burst; grey is idle time.</p>
+  <h2>Gantt Chart</h2>
+  <p class="empty" id="placeholder">Төлөвлөлтийг ажиллуулж Gantt Chart-ийг харна уу. Өнгөт блок бүр нь процессын нэг CPU ээлж, саарал нь сул (idle) хугацаа.</p>
   <div id="out" hidden>
     <div class="stats" id="stats"></div>
-    <div id="gantt" role="img" aria-label="Gantt chart"></div>
-    <div id="axis"></div>
+    <svg id="gantt" role="img" aria-label="Gantt Chart"></svg>
     <div class="player">
-      <button id="back" aria-label="Step back">◀ Back</button>
-      <button id="play">Play</button>
-      <button id="fwd" aria-label="Step forward">Next ▶</button>
-      <input id="slider" type="range" min="0" value="0" aria-label="Time">
+      <button id="back" aria-label="Өмнөх алхам">◀ Өмнөх</button>
+      <button id="play">Тоглуулах</button>
+      <button id="fwd" aria-label="Дараах алхам">Дараах ▶</button>
+      <input id="slider" type="range" min="0" value="0" aria-label="Хугацаа">
       <span id="clock"></span>
     </div>
-    <h2 style="margin-top:18px">Per-process times</h2>
+    <h2 style="margin-top:18px">Процесс бүрийн хугацаа</h2>
     <div style="overflow-x:auto"><table id="mtable"></table></div>
   </div>
 </section>
 </main>
 
+<script src="/static/vendor/d3.min.js"></script>
 <script>
 const ALGOS = {
-  FCFS: "First-Come, First-Served", SJF: "Shortest-Job-First (non-preemptive)",
-  PRIORITY: "Priority (non-preemptive)", RR: "Round-Robin", PRIORITY_RR: "Priority with Round-Robin"
+  FCFS: "Эхэнд ирсэн нь эхэлж үйлчлүүлэх (FCFS)", SJF: "Богино-ажил-эхэнд (SJF), тасалдалгүй",
+  PRIORITY: "Эрэмбэлэлттэй төлөвлөлт (Priority), тасалдалгүй", RR: "Round Robin (RR)",
+  PRIORITY_RR: "Эрэмбэтэй төлөвлөлт + Round Robin"
 };
 const mk = (name, arrival, burst, priority) => ({name, arrival, burst, priority});
 const BOOK = () => [mk("T1",0,20,4), mk("T2",0,25,2), mk("T3",0,25,3), mk("T4",0,15,3), mk("T5",0,10,10)];
+const cfg = (algorithm, quantum, priority_order, processes) => ({algorithm, quantum, priority_order, processes});
 const PRESETS = {
-  "Blank (one process)": {algorithm: "FCFS", quantum: 10, priority_order: "high", processes: [mk("P1", 0, 5, 1)]},
-  "Textbook project tasks: FCFS": {algorithm: "FCFS", quantum: 10, priority_order: "high", processes: BOOK()},
-  "Textbook project tasks: SJF": {algorithm: "SJF", quantum: 10, priority_order: "high", processes: BOOK()},
-  "Textbook project tasks: Priority": {algorithm: "PRIORITY", quantum: 10, priority_order: "high", processes: BOOK()},
-  "Textbook project tasks: RR q=10": {algorithm: "RR", quantum: 10, priority_order: "high", processes: BOOK()},
-  "Textbook project tasks: Priority + RR": {algorithm: "PRIORITY_RR", quantum: 10, priority_order: "high", processes: BOOK()},
-  "Section 5.3 FCFS: 24, 3, 3": {algorithm: "FCFS", quantum: 4, priority_order: "high", processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
-  "Section 5.3 SJF: 6, 8, 7, 3": {algorithm: "SJF", quantum: 4, priority_order: "high", processes: [mk("P1",0,6,1), mk("P2",0,8,1), mk("P3",0,7,1), mk("P4",0,3,1)]},
-  "Section 5.3 Priority (low = high)": {algorithm: "PRIORITY", quantum: 4, priority_order: "low", processes: [mk("P1",0,10,3), mk("P2",0,1,1), mk("P3",0,2,4), mk("P4",0,1,5), mk("P5",0,5,2)]},
-  "Section 5.3 RR q=4: 24, 3, 3": {algorithm: "RR", quantum: 4, priority_order: "high", processes: [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]},
-  "Priority + RR, arrivals and idle gap (low = high)": {algorithm: "PRIORITY_RR", quantum: 2, priority_order: "low", processes: [mk("P1",0,7,3), mk("P2",1,4,2), mk("P3",2,3,2), mk("P4",4,2,1), mk("P5",20,3,2)]}
+  "Хоосон (нэг процесс)": cfg("FCFS", 10, "high", [mk("P1", 0, 5, 1)]),
+  "Номын төсөл: FCFS": cfg("FCFS", 10, "high", BOOK()),
+  "Номын төсөл: SJF": cfg("SJF", 10, "high", BOOK()),
+  "Номын төсөл: Priority": cfg("PRIORITY", 10, "high", BOOK()),
+  "Номын төсөл: RR, квант 10": cfg("RR", 10, "high", BOOK()),
+  "Номын төсөл: Priority + RR": cfg("PRIORITY_RR", 10, "high", BOOK()),
+  "Лекц FCFS: 24, 3, 3": cfg("FCFS", 4, "high", [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]),
+  "Лекц SJF: 6, 8, 7, 3": cfg("SJF", 4, "high", [mk("P1",0,6,1), mk("P2",0,8,1), mk("P3",0,7,1), mk("P4",0,3,1)]),
+  "Лекц Priority (бага тоо = өндөр): дундаж хүлээлт 8.2": cfg("PRIORITY", 4, "low", [mk("P1",0,10,3), mk("P2",0,1,1), mk("P3",0,2,4), mk("P4",0,1,5), mk("P5",0,5,2)]),
+  "Лекц RR, квант 4: 24, 3, 3": cfg("RR", 4, "high", [mk("P1",0,24,1), mk("P2",0,3,1), mk("P3",0,3,1)]),
+  "Priority + RR, ирэх цагтай, сул (idle) завсартай": cfg("PRIORITY_RR", 2, "low", [mk("P1",0,7,3), mk("P2",1,4,2), mk("P3",2,3,2), mk("P4",4,2,1), mk("P5",20,3,2)])
 };
 const $ = id => document.getElementById(id);
-let result = null, T = 0, timer = null;
+let result = null, T = 0, timer = null, scaleX = null, colorOf = null;
+const GW = 800, GH = 96, MG = {l: 10, r: 14, t: 8, b: 28};
 
 for (const k in ALGOS) $("algo").add(new Option(ALGOS[k], k));
 for (const k in PRESETS) $("preset").add(new Option(k, k));
-
-function color(i){ return `hsl(${(i * 67 + 205) % 360} 52% 38%)`; }
 
 function addRow(p = mk("", 0, 1, 5)) {
   const tr = document.createElement("tr");
   for (const f of ["name", "arrival", "burst", "priority"]) {
     const td = document.createElement("td"), inp = document.createElement("input");
-    inp.dataset.f = f; inp.value = p[f]; inp.setAttribute("aria-label", f);
+    inp.dataset.f = f; inp.value = p[f]; inp.setAttribute("aria-label", {name: "нэр", arrival: "ирэх цаг", burst: "CPU ээлж", priority: "эрэмбэ"}[f]);
     if (f !== "name") { inp.type = "number"; inp.step = "1"; }
     td.append(inp); tr.append(td);
   }
   const td = document.createElement("td"), b = document.createElement("button");
-  b.textContent = "✕"; b.className = "del"; b.setAttribute("aria-label", "Remove process");
+  b.textContent = "✕"; b.className = "del"; b.setAttribute("aria-label", "Процесс устгах");
   b.onclick = () => tr.remove(); td.append(b); tr.append(td);
   $("ptable").tBodies[0].append(tr);
 }
-
 function setConfig(c) {
   $("algo").value = c.algorithm in ALGOS ? c.algorithm : "FCFS";
   $("quantum").value = c.quantum ?? 10;
   $("porder").value = c.priority_order === "low" ? "low" : "high";
   $("ptable").tBodies[0].replaceChildren();
   (c.processes || []).forEach(addRow);
-  syncQuantum(); clearResult(); showErrors([]);
+  syncVisibility(); clearResult(); showErrors([]);
 }
-function syncQuantum(){
+function syncVisibility() {
   const a = $("algo").value;
   $("qbox").style.display = ["RR","PRIORITY_RR"].includes(a) ? "" : "none";
   $("pbox").style.display = ["PRIORITY","PRIORITY_RR"].includes(a) ? "" : "none";
 }
-
 function readRows() {
   return [...$("ptable").tBodies[0].rows].map(tr => {
-    const o = {};
-    tr.querySelectorAll("input").forEach(i => o[i.dataset.f] = i.value);
-    return o;
+    const o = {}; tr.querySelectorAll("input").forEach(i => o[i.dataset.f] = i.value); return o;
   });
 }
 function showErrors(list) {
@@ -174,90 +172,88 @@ function showErrors(list) {
   if (!list.length) { e.style.display = "none"; e.replaceChildren(); return; }
   const ul = document.createElement("ul");
   list.forEach(m => { const li = document.createElement("li"); li.textContent = m; ul.append(li); });
-  const h = document.createElement("strong"); h.textContent = "Fix these before running:";
+  const h = document.createElement("strong"); h.textContent = "Ажиллуулахын өмнө дараахыг засна уу:";
   e.replaceChildren(h, ul); e.style.display = "block";
 }
 function clearResult(){ stop(); result = null; $("out").hidden = true; $("placeholder").hidden = false; }
 
 async function run() {
   stop();
+  if (typeof d3 === "undefined") { showErrors(["D3 сан ачаалагдсангүй. src/static/vendor/d3.min.js файл байгаа эсэхийг шалгана уу."]); return; }
   let data;
   try {
     const r = await fetch("/api/schedule", {method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({algorithm: $("algo").value, quantum: $("quantum").value,
         priority_order: $("porder").value, processes: readRows()})});
     data = await r.json();
-    if (!r.ok) { showErrors(data.errors || ["Unexpected server response."]); return; }
-  } catch (e) { showErrors(["Cannot reach the server. Is `python src/server.py` still running?"]); return; }
-  showErrors([]); result = data; T = 0;
-  $("slider").max = data.total_time; $("slider").value = 0;
+    if (!r.ok) { showErrors(data.errors || ["Серверийн хариу гэнэтийн байна."]); return; }
+  } catch (e) { showErrors(["Серверт холбогдож чадсангүй. `python src/server.py` ажиллаж байгаа эсэхийг шалгана уу."]); return; }
+  showErrors([]); result = data;
+  $("slider").max = data.total_time;
   $("placeholder").hidden = true; $("out").hidden = false;
-  buildStatic(); draw(); T = data.total_time; $("slider").value = T; draw();
+  colorOf = d3.scaleOrdinal(d3.schemeTableau10).domain(data.processes.map(p => p.name));
+  buildStatic(); buildGantt(); T = data.total_time; draw();
 }
 
-function idx(name){ return result.processes.findIndex(p => p.name === name); }
-
 function buildStatic() {
-  const s = $("stats");
-  s.replaceChildren();
-  [["Algorithm", ALGOS[result.algorithm] + (result.quantum ? ` (q=${result.quantum})` : "")],
-   ["Total time", result.total_time], ["CPU utilization", result.cpu_utilization + "%"]].forEach(([k, v]) => {
-    const d = document.createElement("span"), b = document.createElement("b");
-    b.textContent = v; d.append(k + ": ", b); s.append(d);
-  });
-  // axis
-  const ax = $("axis"); ax.replaceChildren();
-  const marks = new Set([0]); result.segments.forEach(g => marks.add(g.end));
-  let lastPct = -10;
-  [...marks].sort((a, b) => a - b).forEach(t => {
-    const pct = 100 * t / result.total_time;
-    if (pct - lastPct < 2.5 && t !== result.total_time) return;
-    const sp = document.createElement("span"); sp.style.left = pct + "%"; sp.textContent = t; ax.append(sp); lastPct = pct;
-  });
-  $("gantt").style.setProperty("--unit", `${100 / result.total_time}%`);
-  // table
+  const stats = [["Алгоритм", ALGOS[result.algorithm] + (result.quantum ? ` (квант ${result.quantum})` : "")],
+    ["Нийт хугацаа", result.total_time], ["CPU ашиглалт (utilization)", result.cpu_utilization + "%"]];
+  d3.select("#stats").selectAll("span").data(stats).join("span")
+    .html(d => `${d[0]}: <b></b>`).select("b").text(d => d[1]);
   const t = $("mtable"); t.replaceChildren();
   const head = t.createTHead().insertRow();
-  ["Process","Arrival","Burst","Priority","Completion","Turnaround","Waiting","Response"].forEach((h, i) => {
+  ["Процесс","Ирэх цаг","CPU ээлж","Эрэмбэ","Дуусах цаг","Эргэлтийн хугацаа (turnaround)","Хүлээлтийн хугацаа (waiting)","Response time"].forEach((h, i) => {
     const th = document.createElement("th"); th.textContent = h; if (i) th.className = "num"; head.append(th);
   });
   const body = t.createTBody();
-  result.processes.forEach((p, i) => {
-    const r = body.insertRow();
-    const c0 = r.insertCell(), dot = document.createElement("span");
-    dot.className = "dot"; dot.style.background = color(i); c0.append(dot, p.name);
+  result.processes.forEach(p => {
+    const r = body.insertRow(), c0 = r.insertCell(), dot = document.createElement("span");
+    dot.className = "dot"; dot.style.background = colorOf(p.name); c0.append(dot, p.name);
     ["arrival","burst","priority","completion","turnaround","waiting","response"].forEach(k => {
       const c = r.insertCell(); c.className = "num"; c.textContent = p[k];
     });
   });
   const f = t.createTFoot().insertRow(), a = result.averages;
-  const lbl = f.insertCell(); lbl.textContent = "Average"; lbl.colSpan = 5;
+  const lbl = f.insertCell(); lbl.textContent = "Дундаж"; lbl.colSpan = 5;
   [a.turnaround, a.waiting, a.response].forEach(v => { const c = f.insertCell(); c.className = "num"; c.textContent = v; });
 }
 
-function draw() {
-  const g = $("gantt"); g.replaceChildren();
+function buildGantt() {
   const total = result.total_time;
-  let running = "idle";
-  result.segments.forEach(s => {
-    const vis = Math.max(0, Math.min(s.end, T) - s.start);
-    if (!vis) return;
-    if (T > s.start && T <= s.end) running = s.name || "idle (no process ready)";
-    const d = document.createElement("div");
-    d.className = "seg" + (s.name ? "" : " idle");
-    d.style.left = (100 * s.start / total) + "%"; d.style.width = (100 * vis / total) + "%";
-    if (s.name) d.style.background = color(idx(s.name));
-    d.textContent = s.name || "idle";
-    d.title = `${s.name || "idle"}: ${s.start} to ${s.end}`;
-    g.append(d);
-  });
-  $("clock").textContent = T === 0 ? "t = 0" : `t = ${T} / ${total}, running: ${running}`;
+  scaleX = d3.scaleLinear().domain([0, total]).range([MG.l, GW - MG.r]);
+  const svg = d3.select("#gantt").attr("viewBox", `0 0 ${GW} ${GH}`);
+  svg.selectAll("*").remove();
+  // tick labels at segment boundaries, skipping ones that would overlap
+  let last = -99;
+  const ticks = [...new Set([0, ...result.segments.map(s => s.end)])].sort((a, b) => a - b)
+    .filter(t => { const x = scaleX(t); if (x - last < 26 && t !== total) return false; last = x; return true; });
+  svg.append("g").attr("transform", `translate(0,${GH - MG.b})`).call(d3.axisBottom(scaleX).tickValues(ticks).tickFormat(d3.format("d")));
+  const g = svg.selectAll("g.seg").data(result.segments).join("g")
+    .attr("class", d => "seg" + (d.name ? "" : " idle"));
+  g.append("rect").attr("y", MG.t).attr("height", GH - MG.b - MG.t).attr("x", d => scaleX(d.start)).attr("width", 0)
+    .attr("fill", d => d.name ? colorOf(d.name) : "var(--idle)").attr("stroke", "#fff")
+    .append("title").text(d => `${d.name || "сул (idle)"}: ${d.start} - ${d.end}`);
+  g.append("text").attr("y", (GH - MG.b + MG.t) / 2).text(d => d.name || "idle");
+  svg.append("line").attr("class", "cursor").attr("y1", MG.t - 4).attr("y2", GH - MG.b);
+}
+
+function draw() {
+  const svg = d3.select("#gantt"), total = result.total_time;
+  const vis = d => Math.max(0, Math.min(d.end, T) - d.start);
+  svg.selectAll("g.seg rect").transition().duration(120)
+    .attr("width", d => scaleX(d.start + vis(d)) - scaleX(d.start));
+  svg.selectAll("g.seg text")
+    .attr("x", d => (scaleX(d.start) + scaleX(d.start + vis(d))) / 2)
+    .style("display", d => scaleX(d.start + vis(d)) - scaleX(d.start) > 22 ? null : "none");
+  svg.select(".cursor").transition().duration(120).attr("x1", scaleX(T)).attr("x2", scaleX(T));
+  const cur = result.segments.find(s => T > s.start && T <= s.end);
+  $("clock").textContent = T === 0 ? "t = 0" : `t = ${T} / ${total}, ажиллаж байгаа: ${cur ? (cur.name || "сул (idle)") : "-"}`;
   $("slider").value = T;
 }
-function stop(){ if (timer) clearInterval(timer); timer = null; $("play").textContent = "Play"; }
+function stop(){ if (timer) clearInterval(timer); timer = null; $("play").textContent = "Тоглуулах"; }
 function step(d){ if (!result) return; stop(); T = Math.max(0, Math.min(result.total_time, T + d)); draw(); }
 
-$("algo").onchange = () => { syncQuantum(); clearResult(); };
+$("algo").onchange = () => { syncVisibility(); clearResult(); };
 $("porder").onchange = clearResult;
 $("preset").onchange = () => setConfig(PRESETS[$("preset").value]);
 $("add").onclick = () => addRow(mk("P" + ($("ptable").tBodies[0].rows.length + 1), 0, 1, 5));
@@ -270,20 +266,21 @@ $("play").onclick = () => {
   if (!result) return;
   if (timer) return stop();
   if (T >= result.total_time) T = 0;
-  $("play").textContent = "Pause";
+  $("play").textContent = "Түр зогсоох";
   timer = setInterval(() => { if (T >= result.total_time) return stop(); T++; draw(); }, 350);
 };
 $("load").onclick = () => $("file").click();
+
 function parseTxt(text) {
   const procs = [], errs = [];
   text.split(/\r?\n/).forEach((raw, i) => {
     const line = raw.trim();
     if (!line || line.startsWith("#")) return;
     const p = line.split(",").map(x => x.trim());
-    if (p.length !== 3 || p.some(x => !x)) { errs.push(`Line ${i + 1}: expected "[name], [priority], [burst]" but found "${line}".`); return; }
+    if (p.length !== 3 || p.some(x => !x)) { errs.push(`${i + 1}-р мөр: "[нэр], [эрэмбэ], [CPU ээлж]" хэлбэртэй байх ёстой, олдсон: "${line}".`); return; }
     procs.push(mk(p[0], 0, p[2], p[1]));
   });
-  if (!procs.length && !errs.length) errs.push("The task file has no tasks.");
+  if (!procs.length && !errs.length) errs.push("Файлд даалгавар алга.");
   return [procs, errs];
 }
 $("file").onchange = async e => {
@@ -300,7 +297,7 @@ $("file").onchange = async e => {
     const c = JSON.parse(text);
     if (!c || !Array.isArray(c.processes)) throw 0;
     setConfig(c);
-  } catch { showErrors(["That file is not a valid scenario. Expected JSON with \"algorithm\", \"quantum\" and a \"processes\" list, or a .txt file with lines like \"T1, 4, 20\"."]); }
+  } catch { showErrors(["Энэ файл зөв сценари биш байна. \"algorithm\", \"quantum\", \"processes\" талбартай JSON эсвэл \"T1, 4, 20\" мөртэй .txt файл өгнө үү."]); }
 };
 
 setConfig(PRESETS[Object.keys(PRESETS)[3]]); $("preset").selectedIndex = 3;

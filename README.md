@@ -55,6 +55,19 @@ python -m unittest discover -s tests -v
   and a newly arrived higher-priority process preempts.
 - Response time = first CPU start - arrival. Waiting = turnaround - burst.
 
+## Нэр томьёо (Lec 5-ын дагуу)
+| Код / UI | Монгол | English |
+|---|---|---|
+| arrival | Ирэх цаг | arrival time |
+| burst | CPU ээлж | CPU burst |
+| priority | Эрэмбэ | priority |
+| quantum | Квант | time quantum |
+| waiting | Хүлээлтийн хугацаа | waiting time |
+| turnaround | Эргэлтийн хугацаа | turnaround time |
+| response | Response time | response time |
+| idle | Сул (idle) | idle |
+| FCFS / SJF / Priority / RR | Эхэнд ирсэн нь эхэлж үйлчлүүлэх / Богино-ажил-эхэнд / Эрэмбэлэлттэй төлөвлөлт / Round Robin | - |
+
 ## Third-party code, libraries and AI
-- Libraries: none (Python standard library only).
+- Libraries: Python standard library only on the server. UI uses **D3.js v7.9.0** (ISC license), vendored in `src/static/vendor/d3.min.js` so no internet is needed.
 - AI assistance: (describe what was generated and what the team reviewed/changed).

@@ -9,20 +9,22 @@ priority_order="low" gives the chapter-5 lecture convention (smaller = higher).
 Standard library only.
 """
 
+# Names follow the lecture (Lec 5): Mongolian description + English term.
 ALGORITHMS = {
-    "FCFS": "First-Come, First-Served",
-    "SJF": "Shortest-Job-First (non-preemptive)",
-    "PRIORITY": "Priority (non-preemptive)",
-    "RR": "Round-Robin",
-    "PRIORITY_RR": "Priority with Round-Robin",
+    "FCFS": "Эхэнд ирсэн нь эхэлж үйлчлүүлэх (FCFS)",
+    "SJF": "Богино-ажил-эхэнд (SJF), тасалдалгүй",
+    "PRIORITY": "Эрэмбэлэлттэй төлөвлөлт (Priority), тасалдалгүй",
+    "RR": "Round Robin (RR)",
+    "PRIORITY_RR": "Эрэмбэтэй төлөвлөлт + Round Robin",
 }
+FIELD_MN = {"arrival": "ирэх цаг", "burst": "CPU ээлж (burst)", "priority": "эрэмбэ"}
 NEEDS_QUANTUM = {"RR", "PRIORITY_RR"}
 MAX_PROCESSES = 50
 MAX_VALUE = 100000
 PRIORITY_MIN, PRIORITY_MAX = 1, 10
 DEFAULT_QUANTUM = 10  # textbook: time quantum is 10 ms
-PRIORITY_ORDERS = {"high": "Higher number = higher priority (textbook)",
-                   "low": "Lower number = higher priority"}
+PRIORITY_ORDERS = {"high": "Их тоо = өндөр эрэмбэ (ном)",
+                   "low": "Бага тоо = өндөр эрэмбэ"}
 
 
 class ValidationError(ValueError):
@@ -47,25 +49,25 @@ def validate(raw_processes, algorithm, quantum, priority_order="high"):
     """Return (clean_processes, quantum) or raise ValidationError."""
     errors = []
     if priority_order not in PRIORITY_ORDERS:
-        errors.append(f"Unknown priority order '{priority_order}'. Use 'high' or 'low'.")
+        errors.append(f"Мэдэгдэхгүй эрэмбийн дараалал '{priority_order}'. 'high' эсвэл 'low' өгнө үү.")
     if algorithm not in ALGORITHMS:
-        errors.append(f"Unknown algorithm '{algorithm}'. Choose one of: {', '.join(ALGORITHMS)}.")
+        errors.append(f"Мэдэгдэхгүй алгоритм '{algorithm}'. Сонгох боломжтой: {', '.join(ALGORITHMS)}.")
     if not isinstance(raw_processes, list) or not raw_processes:
-        raise ValidationError(errors + ["Add at least one process."])
+        raise ValidationError(errors + ["Дор хаяж нэг процесс нэмнэ үү."])
     if len(raw_processes) > MAX_PROCESSES:
-        raise ValidationError(errors + [f"Too many processes ({len(raw_processes)}). The limit is {MAX_PROCESSES}."])
+        raise ValidationError(errors + [f"Процесс хэт олон байна ({len(raw_processes)}). Дээд хязгаар {MAX_PROCESSES}."])
 
     clean, seen = [], set()
     for i, p in enumerate(raw_processes, start=1):
         if not isinstance(p, dict):
-            errors.append(f"Row {i}: expected an object with name, arrival, burst, priority.")
+            errors.append(f"{i}-р мөр: name, arrival, burst, priority талбартай объект байх ёстой.")
             continue
         name = str(p.get("name", "")).strip()
-        label = f"Row {i} ({name or 'no name'})"
+        label = f"{i}-р мөр ({name or 'нэргүй'})"
         if not name:
-            errors.append(f"Row {i}: name is empty.")
+            errors.append(f"{i}-р мөр: нэр хоосон байна.")
         elif name in seen:
-            errors.append(f"{label}: name '{name}' is used more than once.")
+            errors.append(f"{label}: '{name}' нэр давхардсан байна.")
         seen.add(name)
         vals = {}
         for field, minimum, top in (("arrival", 0, MAX_VALUE), ("burst", 1, MAX_VALUE),
@@ -76,12 +78,12 @@ def validate(raw_processes, algorithm, quantum, priority_order="high"):
             try:
                 v = _to_int(raw)
             except (ValueError, TypeError):
-                errors.append(f"{label}: {field} must be a whole number.")
+                errors.append(f"{label}: {FIELD_MN[field]} бүхэл тоо байх ёстой.")
                 continue
             if v < minimum:
-                errors.append(f"{label}: {field} must be at least {minimum}.")
+                errors.append(f"{label}: {FIELD_MN[field]} хамгийн багадаа {minimum} байх ёстой.")
             elif v > top:
-                errors.append(f"{label}: {field} must be at most {top}.")
+                errors.append(f"{label}: {FIELD_MN[field]} хамгийн ихдээ {top} байх ёстой.")
             else:
                 vals[field] = v
         if len(vals) == 3 and name:
@@ -92,9 +94,9 @@ def validate(raw_processes, algorithm, quantum, priority_order="high"):
         try:
             q = _to_int(DEFAULT_QUANTUM if quantum in (None, "") else quantum)
             if q < 1 or q > MAX_VALUE:
-                errors.append(f"Quantum must be between 1 and {MAX_VALUE}.")
+                errors.append(f"Квант 1-ээс {MAX_VALUE} хооронд байх ёстой.")
         except (ValueError, TypeError):
-            errors.append("Quantum must be a whole number for this algorithm.")
+            errors.append("Квант бүхэл тоо байх ёстой.")
     if errors:
         raise ValidationError(errors)
     return clean, q
@@ -220,9 +222,9 @@ def parse_task_text(text):
             continue
         parts = [x.strip() for x in line.split(",")]
         if len(parts) != 3 or not all(parts):
-            errors.append(f"Line {n}: expected '[name], [priority], [burst]' but found '{line}'.")
+            errors.append(f"{n}-р мөр: '[нэр], [эрэмбэ], [CPU ээлж]' хэлбэртэй байх ёстой, олдсон: '{line}'.")
             continue
         procs.append({"name": parts[0], "priority": parts[1], "burst": parts[2], "arrival": 0})
     if not procs and not errors:
-        errors.append("The task file has no tasks.")
+        errors.append("Файлд даалгавар алга.")
     return procs, errors
